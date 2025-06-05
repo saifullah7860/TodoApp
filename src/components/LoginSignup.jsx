@@ -21,6 +21,8 @@ const LoginSignup = ({ onAuthorized }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [signupError, setSignupError] = useState("");
   const [signupLoading, setSignupLoading] = useState(false);
+  const passwordRegex =
+    /(?=^.{8,}$)((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/;
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -50,14 +52,20 @@ const LoginSignup = ({ onAuthorized }) => {
       setSignupLoading(false);
       return;
     }
+    if (!passwordRegex.test(signupPassword)) {
+      setSignupError(
+        "Password must be at least 8 characters, include upper and lower case letters, and at least one number or special character."
+      );
+      setSignupLoading(false);
+      return;
+    }
     createUserWithEmailAndPassword(auth, signupEmail, signupPassword)
       .then((userCredential) => {
-        console.log(userCredential);
         setSignupEmail("");
         setSignupPassword("");
         setConfirmPassword("");
-        localStorage.setItem("userUID", userCredential.user.uid);
         setShowLogin(true);
+        localStorage.setItem("userUID", userCredential.user.uid);
       })
       .catch((err) => {
         setSignupError(err.message);
