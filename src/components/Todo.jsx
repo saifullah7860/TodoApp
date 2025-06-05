@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import todo_logo from "../assets/todo_icon.png";
 import TodoItems from "./TodoItems";
-const Todo = () => {
-  const [todoList, setTodoList] = useState(
-    localStorage.getItem("todos")
-      ? JSON.parse(localStorage.getItem("todos"))
-      : []
-  );
+
+const getUserUID = () => localStorage.getItem("userUID");
+const getTodosKey = () => `todos_${getUserUID()}`;
+
+const Todo = ({ onLogout }) => {
+  const [todoList, setTodoList] = useState(() => {
+    const key = getTodosKey();
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : [];
+  });
   const [editingId, setEditingId] = useState(null);
   const inputRef = useRef();
 
@@ -57,9 +61,18 @@ const Todo = () => {
       });
     });
   };
+
   useEffect(() => {
-    localStorage.setItem("todos", JSON.stringify(todoList));
+    const key = getTodosKey();
+    localStorage.setItem(key, JSON.stringify(todoList));
   }, [todoList]);
+
+  useEffect(() => {
+    const key = getTodosKey();
+    const stored = localStorage.getItem(key);
+    setTodoList(stored ? JSON.parse(stored) : []);
+  }, []);
+
   return (
     <>
       <div className="bg-white place-self-center w-11/12 max-w-md flex flex-col p-7 min-h-[500px] rounded-[4px]">
@@ -102,9 +115,7 @@ const Todo = () => {
       </div>
       <button
         className="mt-2 rounded-full bg-red-500 w-32 h-12 text-white text-sm font-medium cursor-pointer self-center ml-auto mr-auto"
-        onClick={() => {
-          window.location.reload();
-        }}
+        onClick={onLogout}
       >
         LOGOUT
       </button>
