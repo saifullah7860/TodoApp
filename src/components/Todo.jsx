@@ -1,18 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 import todo_logo from "../assets/todo_icon.png";
 import TodoItems from "./TodoItems";
-
-const getUserUID = () => localStorage.getItem("userUID");
-const getTodosKey = () => `todos_${getUserUID()}`;
+import { app } from "../firebase";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import {
+  getDatabase,
+  ref,
+  set,
+  onValue,
+  remove,
+  update,
+} from "firebase/database";
 
 const Todo = ({ onLogout }) => {
-  const [todoList, setTodoList] = useState(() => {
-    const key = getTodosKey();
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : [];
-  });
+  const [todoList, setTodoList] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [user, setUser] = useState(null);
   const inputRef = useRef();
+  const auth = getAuth();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, [auth]);
+
+  const userUID = user?.uid;
 
   const todoEdit = (id, text) => {
     inputRef.current.value = text;
@@ -20,16 +34,16 @@ const Todo = ({ onLogout }) => {
   };
 
   const todoAddOrUpdate = () => {
+    if (!userUID) return;
     const inputText = inputRef.current.value.trim();
-    if (inputText === "") {
-      return null;
-    }
+    if (inputText === "") return null;
+    const db = getDatabase(app);
     if (editingId !== null) {
-      setTodoList((prev) =>
-        prev.map((todo) =>
-          todo.id === editingId ? { ...todo, text: inputText } : todo
-        )
-      );
+      const updatedTodo = {
+        ...todoList.find((todo) => todo.id === editingId),
+        text: inputText,
+      };
+      set(ref(db, `todos/${userUID}/${editingId}`), updatedTodo);
       setEditingId(null);
     } else {
       const newTodo = {
@@ -37,42 +51,42 @@ const Todo = ({ onLogout }) => {
         text: inputText,
         isComplete: false,
       };
-      setTodoList((prev) => [...prev, newTodo]);
+      set(ref(db, `todos/${userUID}/${newTodo.id}`), newTodo);
     }
     inputRef.current.value = "";
   };
 
   const deleteTodo = (id) => {
-    setTodoList((prevTodos) => {
-      return prevTodos.filter((todo) => todo.id !== id);
-    });
+    if (!userUID) return;
+    const db = getDatabase(app);
+    remove(ref(db, `todos/${userUID}/${id}`));
     if (editingId === id) {
       setEditingId(null);
       inputRef.current.value = "";
     }
   };
+
   const toggle = (id) => {
-    setTodoList((prvTodos) => {
-      return prvTodos.map((todo) => {
-        if (todo.id === id) {
-          return { ...todo, isComplete: !todo.isComplete };
-        }
-        return todo;
+    if (!userUID) return;
+    const db = getDatabase(app);
+    const todo = todoList.find((t) => t.id === id);
+    if (todo) {
+      update(ref(db, `todos/${userUID}/${id}`), {
+        isComplete: !todo.isComplete,
       });
-    });
+    }
   };
 
   useEffect(() => {
-    const key = getTodosKey();
-    localStorage.setItem(key, JSON.stringify(todoList));
-  }, [todoList]);
-
-  useEffect(() => {
-    const key = getTodosKey();
-    const stored = localStorage.getItem(key);
-    setTodoList(stored ? JSON.parse(stored) : []);
-  }, []);
-
+    if (!userUID) return;
+    const db = getDatabase(app);
+    const todosRef = ref(db, `todos/${userUID}`);
+    const unsubscribe = onValue(todosRef, (snapshot) => {
+      const data = snapshot.val();
+      setTodoList(data ? Object.values(data) : []);
+    });
+    return () => unsubscribe();
+  }, [userUID]);
   return (
     <>
       <div className="bg-white place-self-center w-11/12 max-w-md flex flex-col p-7 min-h-[500px] rounded-[4px]">

@@ -5,17 +5,13 @@ import {
   getAuth,
 } from "firebase/auth";
 import { app } from "../firebase";
-
 const auth = getAuth(app);
-
 const LoginSignup = ({ onAuthorized }) => {
   const [showLogin, setShowLogin] = useState(true);
-
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
-
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -23,16 +19,14 @@ const LoginSignup = ({ onAuthorized }) => {
   const [signupLoading, setSignupLoading] = useState(false);
   const passwordRegex =
     /(?=^.{8,}$)((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/;
-
   const handleLogin = (e) => {
     e.preventDefault();
     setLoginError("");
     setLoginLoading(true);
     signInWithEmailAndPassword(auth, loginEmail, loginPassword)
-      .then((userCredential) => {
+      .then(() => {
         setLoginEmail("");
         setLoginPassword("");
-        localStorage.setItem("userUID", userCredential.user.uid);
         if (onAuthorized) onAuthorized();
       })
       .catch((err) => {
@@ -42,7 +36,6 @@ const LoginSignup = ({ onAuthorized }) => {
         setLoginLoading(false);
       });
   };
-
   const handleSignup = (e) => {
     e.preventDefault();
     setSignupError("");
@@ -60,12 +53,11 @@ const LoginSignup = ({ onAuthorized }) => {
       return;
     }
     createUserWithEmailAndPassword(auth, signupEmail, signupPassword)
-      .then((userCredential) => {
+      .then(() => {
         setSignupEmail("");
         setSignupPassword("");
         setConfirmPassword("");
         setShowLogin(true);
-        localStorage.setItem("userUID", userCredential.user.uid);
       })
       .catch((err) => {
         setSignupError(err.message);
