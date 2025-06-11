@@ -17,7 +17,7 @@ const TodoItems = ({ text, id, isComplete, deleteTodo, toggle, todoEdit }) => {
               : "text-slate-700 ml-4 text-[17px]"
           }`}
         >
-          {text}
+          {text} {isComplete && <span>(Completed)</span>}
         </p>
       </div>
       <img
